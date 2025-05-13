@@ -24,17 +24,23 @@ jobs:
           ls -la juice-shop
           cat juice-shop/package.json || echo "package.json not found"
 
-      # Настраиваем Node.js
+      # Настраиваем Node.js (обновляем до версии 18)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'  # Обновлено до версии 18
 
       # Устанавливаем зависимости Juice Shop
       - name: Install Juice Shop dependencies
         run: |
           cd juice-shop
-          npm install
+          npm install --legacy-peer-deps  # Добавляем --legacy-peer-deps для избежания конфликтов зависимостей
+
+      # Проверяем уязвимости с помощью npm audit
+      - name: Run npm audit
+        run: |
+          cd juice-shop
+          npm audit || echo "npm audit completed with issues"
 
       # SAST: Запускаем Semgrep
       - name: Run Semgrep
@@ -56,3 +62,8 @@ jobs:
         with:
           target: 'http://localhost:3000'
           fail_action: true
+
+      # Отладка: Показываем npm логи при ошибке
+      - name: Show npm logs
+        if: failure()
+        run: cat /home/runner/.npm/_logs/*.log
