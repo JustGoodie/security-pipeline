@@ -62,7 +62,7 @@ jobs:
         with:
           target: 'http://localhost:3000'
           fail_action: true
-          docker_name: 'ghcr.io/zaproxy/zap-stable:2.15.0'  # Используем образ из GHCR с конкретным тегом
+          docker_name: 'owasp/zap2docker-stable'  # Используем образ из GHCR с конкретным тегом
 
       # Отладка: Показываем npm логи при ошибке
       - name: Show npm logs
