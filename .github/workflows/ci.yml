@@ -13,7 +13,18 @@ jobs:
       # Проверяем код из репозитория
       - uses: actions/checkout@v3
 
-      # Настраиваем Node.js для Juice Shop
+      # Клонируем Juice Shop
+      - name: Clone Juice Shop
+        run: |
+          git clone https://github.com/juice-shop/juice-shop.git
+
+      # Отладка: Проверяем содержимое директории juice-shop
+      - name: Debug Juice Shop contents
+        run: |
+          ls -la juice-shop
+          cat juice-shop/package.json || echo "package.json not found"
+
+      # Настраиваем Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
