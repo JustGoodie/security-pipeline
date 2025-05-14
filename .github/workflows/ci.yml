@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  issues: write  # Для создания issues
+  actions: write  # Для загрузки артефактов
+
 jobs:
   build-and-security:
     runs-on: ubuntu-latest
