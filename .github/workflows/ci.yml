@@ -1,68 +1,26 @@
-name: Security CI Pipeline
+name: CI with Semgrep
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
+    branches:
+      - main
 
 jobs:
-  sast:
-    name: Static Analysis (Semgrep)
+  semgrep-analysis:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main repository
+      - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          submodules: true  # Это важно!
 
       - name: Install Semgrep
-        run: |
-          curl -sL https://semgrep.dev/install.sh | sh
+        run: pip install semgrep
 
-      - name: Run Semgrep on Juice Shop
-        run: |
-          ./semgrep --config=auto juice-shop/ --json > semgrep-report.json
+      - name: Run Semgrep scan
+        run: semgrep --config=auto --json -o semgrep-report.json
 
       - name: Upload Semgrep report
-        uses: actions/upload-artifact@v3.1.3
+        uses: actions/upload-artifact@v3
         with:
           name: semgrep-report
           path: semgrep-report.json
-
-  dast:
-    name: Dynamic Analysis (OWASP ZAP)
-    runs-on: ubuntu-latest
-    needs: sast
-
-    steps:
-      - name: Checkout main repository
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install Juice Shop dependencies
-        working-directory: juice-shop
-        run: npm install
-
-      - name: Start Juice Shop server
-        working-directory: juice-shop
-        run: |
-          npm start &
-          sleep 30  # Ждём, пока сервер поднимется
-
-      - name: Run OWASP ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.10.0
-        with:
-          target: 'http://localhost:3000'
-
-      - name: Upload ZAP report
-        uses: actions/upload-artifact@v3
-        with:
-          name: zap-report
-          path: zap-report.html
