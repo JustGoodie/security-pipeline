@@ -68,7 +68,7 @@ jobs:
         with:
           target: 'http://localhost:3000'
           fail_action: false
-          docker_name: 'ictu/zap2docker-weekly:latest'  # Используем ictu/zap2docker-weekly
+          docker_name: 'ictu/zap2docker-weekly:latest'
           token: ${{ secrets.GITHUB_TOKEN }}
           issue_title: 'ZAP Scan Baseline Report'
           allow_issue_writing: true
