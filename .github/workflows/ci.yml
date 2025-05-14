@@ -122,4 +122,33 @@ jobs:
           target: 'http://localhost:3000'
           fail_action: true
           docker_name: 'ictu/zap2docker-weekly:latest'
-          token: ${{
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue_title: 'ZAP Scan Baseline Report'
+          allow_issue_writing: true
+          rules_file_name: 'zap_wrk/rules.tsv'
+
+      # Загружаем отчеты ZAP
+      - name: Upload ZAP Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap_scan
+          path: |
+            report_json.json
+            report_md.md
+            report_html.html
+          retention-days: 7
+
+      # Отладка: Проверяем отчеты ZAP
+      - name: Debug ZAP reports
+        if: always()
+        run: |
+          ls -la /home/runner/work/security-pipeline/security-pipeline
+          cat report_md.md || echo "report_md.md not found"
+          cat report_html.html || echo "report_html.html not found"
+          cat report_json.json || echo "report_json.json not found"
+
+      # Отладка: Показываем npm логи при ошибке
+      - name: Show npm logs
+        if: failure()
+        run: cat /home/runner/.npm/_logs/*.log
