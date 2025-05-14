@@ -131,7 +131,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue_title: 'ZAP Scan Baseline Report'
           allow_issue_writing: true
-          rules_file_name: 'zap_wrk/rules.tsv'
 
       # Загружаем отчеты ZAP
       - name: Upload ZAP Reports
