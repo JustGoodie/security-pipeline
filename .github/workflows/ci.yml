@@ -17,6 +17,14 @@ jobs:
       # Проверяем код из репозитория
       - uses: actions/checkout@v3
 
+      # Отладка: Проверяем файлы репозитория
+      - name: Debug repository files
+        run: |
+          ls -la
+          ls -la .zap || echo ".zap directory not found"
+          cat .zap/rules.tsv || echo "rules.tsv not found"
+          hexdump -C .zap/rules.tsv | head -n 1 || echo "Cannot hexdump rules.tsv"
+
       # Клонируем Juice Shop
       - name: Clone Juice Shop
         run: |
@@ -48,10 +56,21 @@ jobs:
 
       # SAST: Запускаем Semgrep
       - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
+        run: |
+          cd juice-shop
+          semgrep --config=p/security-audit --json > ../semgrep_output.json || echo "Semgrep scan completed with findings"
+          cat ../semgrep_output.json
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      # Загружаем отчет Semgrep
+      - name: Upload Semgrep Report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          config: p/ci
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          name: semgrep_report
+          path: semgrep_output.json
+          retention-days: 7
 
       # Запускаем Juice Shop для DAST
       - name: Start Juice Shop
@@ -70,7 +89,17 @@ jobs:
       # Копируем правила ZAP
       - name: Copy ZAP rules to work directory
         run: |
-          cp .zap/rules.tsv zap_wrk/rules.tsv
+          mkdir -p zap_wrk
+          if [ -f .zap/rules.tsv ]; then
+            cp .zap/rules.tsv zap_wrk/rules.tsv
+            echo "Copied .zap/rules.tsv to zap_wrk/rules.tsv"
+          else
+            echo -e "10017\tIGNORE\t0\n10027\tIGNORE\t0\n10038\tIGNORE\t0\n10049\tIGNORE\t0\n10063\tIGNORE\t0\n10094\tIGNORE\t0\n10096\tIGNORE\t0\n10098\tIGNORE\t0\n10109\tIGNORE\t0\n10110\tIGNORE\t0\n110009\tIGNORE\t0\n90005\tIGNORE\t0" > zap_wrk/rules.tsv
+            echo "Created default zap_wrk/rules.tsv"
+          fi
+          ls -la zap_wrk
+          cat zap_wrk/rules.tsv || echo "zap_wrk/rules.tsv not found"
+          docker run --rm -v $(pwd)/zap_wrk:/zap/wrk/:rw ictu/zap2docker-weekly:latest bash -c "ls -la /zap/wrk/ && cat /zap/wrk/rules.tsv || echo 'ZAP cannot read rules.tsv'"
 
       # Отладка: Проверяем разрешения
       - name: Debug workspace permissions
@@ -91,35 +120,6 @@ jobs:
         uses: zaproxy/action-baseline@v0.7.0
         with:
           target: 'http://localhost:3000'
-          fail_action: false
+          fail_action: true
           docker_name: 'ictu/zap2docker-weekly:latest'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue_title: 'ZAP Scan Baseline Report'
-          allow_issue_writing: true
-          rules_file_name: 'zap_wrk/rules.tsv'
-
-      # Загружаем отчеты ZAP как артефакт
-      - name: Upload ZAP Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: zap_scan
-          path: |
-            report_json.json
-            report_md.md
-            report_html.html
-          retention-days: 7
-
-      # Отладка: Проверяем отчеты ZAP
-      - name: Debug ZAP reports
-        if: always()
-        run: |
-          ls -la /home/runner/work/security-pipeline/security-pipeline
-          cat report_md.md || echo "report_md.md not found"
-          cat report_html.html || echo "report_html.html not found"
-          cat report_json.json || echo "report_json.json not found"
-
-      # Отладка: Показываем npm логи при ошибке
-      - name: Show npm logs
-        if: failure()
-        run: cat /home/runner/.npm/_logs/*.log
+          token: ${{
